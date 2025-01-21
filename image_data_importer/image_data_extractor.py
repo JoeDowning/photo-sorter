@@ -1,18 +1,18 @@
 from PIL import Image
 from PIL.ExifTags import TAGS
-import rawpy
+from rawkit.raw import Raw
 import os
 
 def extract_exif_data(image_path):
     _, ext = os.path.splitext(image_path)
     ext = ext.lower()
 
-    if ext == '.cr3':
-        with rawpy.imread(image_path) as raw:
+    if ext == '.cr3' or ext == '.cr2' or ext == '.raw':
+        with Raw(filename=image_path) as raw:
             # Extract EXIF data from raw image
-            exif_data = raw.raw_image
-            date_taken = raw.timestamp
-            camera_model = raw.camera
+            metadata = raw.metadata
+            date_taken = metadata.timestamp
+            camera_model = metadata.camera
 
             return [date_taken, camera_model]
     else:
