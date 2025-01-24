@@ -8,23 +8,33 @@ import (
 )
 
 var (
-	fileTypes  = []string{"jpg", "jpeg", "raw", "cr3", "cr2", "png"}
-	sourcePath = "/Users/joe.downing/Pictures/Photos/testing-folder"
-	//destinationPath = ""
+	imageFileTypes = []string{"jpg", "jpeg", "raw", "cr3", "cr2", "png"}
+	//videoFileTypes  = []string{"mp4", "mov", "avi", "mkv", "gif"}
+	sourcePath      = "/Users/joe.downing/Pictures/Photos/testing-folder"
+	destinationPath = "/Users/joe.downing/Pictures/Photos/testing-folder/sorted/"
 )
 
 func main() {
-	files, err := file_manager.GetFiles(sourcePath, fileTypes, image_manager.GetPhoto)
+	imageFiles, err := file_manager.GetFiles(sourcePath, imageFileTypes, image_manager.GetPhoto)
 	if err != nil {
 		panic(fmt.Errorf("failed to get files: %w", err))
 	}
 
-	sortedFolders := file_manager.SortFilesByDate(files, image_manager.GetTimestamp)
+	sortedFolders := file_manager.SortFilesByDate(imageFiles, image_manager.GetTimestamp)
 
-	// move files to destinationPath
-	// change file name to have timestamp at the beginning of filename
-	// creating folder per date if not existing
+	for folderName, files := range sortedFolders {
+		err := file_manager.CreateFolderIfNotExists(destinationPath + folderName)
+		if err != nil {
+			panic(fmt.Errorf("failed to create folder: %w", err))
+		}
 
-	fmt.Printf("Files: %v\n", files)
-	fmt.Printf("Sorted Folders: %v\n", sortedFolders)
+		for _, file := range files {
+			err := file_manager.CopyAndRenameFile(
+				file.GetFilePath(),
+				destinationPath+folderName+"/"+file.GetFileName())
+			if err != nil {
+				panic(fmt.Errorf("failed to copy and rename file: %w", err))
+			}
+		}
+	}
 }

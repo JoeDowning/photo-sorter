@@ -3,6 +3,7 @@ package image_manager
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/evanoberholster/imagemeta"
@@ -10,17 +11,27 @@ import (
 )
 
 type ImageData struct {
+	fileName    string
 	filePath    string
 	cameraModel string
 	timestamp   time.Time
 }
 
-func toImageData(e exif2.Exif, path string) ImageData {
+func toImageData(e exif2.Exif, name, path string) ImageData {
 	return ImageData{
+		fileName:    name,
 		filePath:    path,
 		cameraModel: e.Model,
 		timestamp:   e.DateTimeOriginal(),
 	}
+}
+
+func (i ImageData) GetFileName() string {
+	return i.fileName
+}
+
+func (i ImageData) GetFilePath() string {
+	return i.filePath
 }
 
 func GetTimestamp(i ImageData) time.Time {
@@ -40,5 +51,6 @@ func GetPhoto(path string) (ImageData, error) {
 		return i, fmt.Errorf("failed to decode image: %w", err)
 	}
 
-	return toImageData(e, path), nil
+	sepPath := strings.Split(path, "/")
+	return toImageData(e, sepPath[len(sepPath)-1], path), nil
 }

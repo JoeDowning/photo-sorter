@@ -2,6 +2,7 @@ package file_manager
 
 import (
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -39,4 +40,22 @@ func SortFilesByDate[T any](files map[string]T, getTimeStamp func(T) time.Time) 
 	}
 
 	return sortedFiles
+}
+
+func CreateFolderIfNotExists(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err := os.Mkdir(path, 0750)
+		if err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
+		}
+	}
+	return nil
+}
+
+func CopyAndRenameFile(src, dst string) error {
+	err := os.Rename(src, dst)
+	if err != nil {
+		return fmt.Errorf("failed to rename file: %w", err)
+	}
+	return nil
 }
