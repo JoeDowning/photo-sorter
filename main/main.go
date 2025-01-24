@@ -20,9 +20,16 @@ func main() {
 		panic(fmt.Errorf("failed to get files: %w", err))
 	}
 
+	//todo: add video files
+
+	//todo: change below to have multiple file types and getTimestamps
+
 	sortedFolders := file_manager.SortFilesByDate(imageFiles, image_manager.GetTimestamp)
 
 	for folderName, files := range sortedFolders {
+
+		//todo: change so that it is folders of year, month, date
+
 		err := file_manager.CreateFolderIfNotExists(destinationPath + folderName)
 		if err != nil {
 			panic(fmt.Errorf("failed to create folder: %w", err))
