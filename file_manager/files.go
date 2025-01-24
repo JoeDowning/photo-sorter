@@ -2,29 +2,41 @@ package file_manager
 
 import (
 	"fmt"
-	"os"
+	"time"
 )
 
-func GetFiles(path string) (map[string]string, error) {
+func GetFiles[T any](path string, fileTypes []string, fileData func(string) (T, error)) (map[string]T, error) {
 	entries, err := getDirectoryEntries(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get directory entries: %w", err)
 	}
 
+	files := make(map[string]T)
 	for _, e := range entries {
-		if e.IsDir() {
-
+		if e.IsDir() || !isUsableFileType(fileTypes, e.Name()) {
+			continue
 		}
+
+		file, err := fileData(path + "/" + e.Name())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file data: %w", err)
+		}
+		files[e.Name()] = file
 	}
 
-	return nil
+	return files, nil
 }
 
-func getDirectoryEntries(path string) ([]os.DirEntry, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read directory: %w", err)
+func SortFilesByDate[T any](files map[string]T, getTimeStamp func(T) time.Time) map[string][]T {
+	sortedFiles := make(map[string][]T)
+	for _, f := range files {
+		timestamp := getTimeStamp(f)
+		folderName := formatFolderName(timestamp.Year(), int(timestamp.Month()), timestamp.Day())
+		if _, ok := sortedFiles[folderName]; !ok {
+			sortedFiles[folderName] = make([]T, 0)
+		}
+		sortedFiles[folderName] = append(sortedFiles[folderName], f)
 	}
 
-	return entries, nil
+	return sortedFiles
 }
