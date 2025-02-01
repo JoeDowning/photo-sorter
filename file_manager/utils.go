@@ -52,3 +52,14 @@ func formatFolderName(year, month, day int) string {
 
 	return fmt.Sprintf(folderFormat, strconv.Itoa(year), m, d)
 }
+
+func mergeMaps[T any](m1 map[string]T, m2 map[string]T) map[string]T {
+	m := make(map[string]T)
+	for k, v := range m1 {
+		m[k] = v
+	}
+	for k, v := range m2 {
+		m[k] = v
+	}
+	return m
+}

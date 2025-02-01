@@ -13,7 +13,7 @@ import (
 
 var (
 	imageFileTypes               = []string{"jpg", "jpeg", "raw", "cr3", "cr2", "png"}
-	sourcePath                   = "/Users/joe.downing/Pictures/Photos/testing-folder"
+	sourcePath                   = "/Users/joe.downing/Pictures/Photos/testing-folder/test-images"
 	destinationPath              = "/Users/joe.downing/Pictures/Photos/testing-folder/sorted"
 	nonImageFilesDestinationPath = "/Users/joe.downing/Pictures/Photos/testing-folder/non-image-files/"
 )

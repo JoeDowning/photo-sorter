@@ -80,7 +80,7 @@ func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []strin
 			logger.Debug("got file data",
 				zap.String("name", e.Name()),
 				zap.Any("file", file))
-			files[e.Name()] = file
+			files[e.Name()] = file //todo add to this name the timestamp time
 		}
 	}
 
