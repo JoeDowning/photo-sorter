@@ -9,18 +9,25 @@ import (
 
 var folderFormat = "%s-%s-%s"
 
-func isUsableFileType(fileTypes []string, name string) bool {
+// isUsableFileType checks if the file type is in the list of file types, if includeFiles is true
+// it will return true if the file type is in the list, if includeFiles is false it will return true
+// if the file type is not in the list.
+func isUsableFileType(fileTypes []string, name string, includeFiles bool) bool {
 	splitName := strings.Split(name, ".")
 	if len(splitName) < 2 {
 		return false
 	}
 
+	var result bool
 	for _, fileType := range fileTypes {
-		if strings.ToLower(fileType) == strings.ToLower(splitName[1]) {
-			return true
+		if strings.ToLower(fileType) == strings.ToLower(splitName[1]) && includeFiles {
+			result = true
 		}
 	}
-	return false
+	if !includeFiles && !result {
+		result = true
+	}
+	return !result
 }
 
 func getDirectoryEntries(path string) ([]os.DirEntry, error) {

@@ -4,24 +4,46 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"go.uber.org/zap"
 )
 
-func GetFiles[T any](path string, fileTypes []string, fileData func(string) (T, error)) (map[string]T, error) {
+const (
+	FolderYear  = "year"
+	FolderMonth = "month"
+	FolderDay   = "day"
+)
+
+func GetFiles[T any](logger *zap.Logger, path string, fileTypes []string, includeFiles bool, fileData func(string) (T, error),
+) (map[string]T, error) {
 	entries, err := getDirectoryEntries(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get directory entries: %w", err)
 	}
 
+	logger.Debug("got directory entries",
+		zap.String("path", path),
+		zap.Any("entries", entries))
 	files := make(map[string]T)
 	for _, e := range entries {
-		if e.IsDir() || !isUsableFileType(fileTypes, e.Name()) {
+		if e.IsDir() || isUsableFileType(fileTypes, e.Name(), includeFiles) {
+			logger.Debug("skipping file",
+				zap.String("name", e.Name()),
+				zap.Bool("isDir", e.IsDir()),
+				zap.Bool("isUsableFileType", isUsableFileType(fileTypes, e.Name(), includeFiles)),
+				zap.Bool("includeFiles", includeFiles))
 			continue
 		}
 
+		logger.Debug("getting file data",
+			zap.String("name", e.Name()))
 		file, err := fileData(path + "/" + e.Name())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get file data: %w", err)
 		}
+		logger.Debug("got file data",
+			zap.String("name", e.Name()),
+			zap.Any("file", file))
 		files[e.Name()] = file
 	}
 
@@ -40,6 +62,15 @@ func SortFilesByDate[T any](files map[string]T, getTimeStamp func(T) time.Time) 
 	}
 
 	return sortedFiles
+}
+
+func AddFolderPathToFile[T any](files map[string]T, addFolderPath func(T) T) map[string]T {
+	filesWithPath := make(map[string]T)
+	for name, file := range files {
+		fileWithPath := addFolderPath(file)
+		filesWithPath[name] = fileWithPath
+	}
+	return filesWithPath
 }
 
 func CreateFolderIfNotExists(path string) error {
