@@ -15,6 +15,7 @@ type ImageData struct {
 	filePath    string
 	cameraModel string
 	timestamp   time.Time
+	DestPath    string
 }
 
 func toImageData(e exif2.Exif, name, path string) ImageData {
