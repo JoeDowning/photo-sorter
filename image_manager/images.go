@@ -3,11 +3,14 @@ package image_manager
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/evanoberholster/imagemeta"
 	"github.com/evanoberholster/imagemeta/exif2"
+
+	"github.com/photos-sorter/pkg/genutils"
 )
 
 type ImageData struct {
@@ -19,8 +22,13 @@ type ImageData struct {
 }
 
 func toImageData(e exif2.Exif, name, path string) ImageData {
+	h, m, s := e.DateTimeOriginal().Clock()
+	prefix := fmt.Sprintf("%s%s%s_",
+		genutils.PrefixZeros(2, strconv.Itoa(h)),
+		genutils.PrefixZeros(2, strconv.Itoa(m)),
+		genutils.PrefixZeros(2, strconv.Itoa(s)))
 	return ImageData{
-		fileName:    name,
+		fileName:    prefix + name,
 		filePath:    path,
 		cameraModel: e.Model,
 		timestamp:   e.DateTimeOriginal(),

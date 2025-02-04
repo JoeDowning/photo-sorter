@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/photos-sorter/pkg/genutils"
 )
 
 var folderFormat = "%s-%s-%s"
@@ -40,17 +42,9 @@ func getDirectoryEntries(path string) ([]os.DirEntry, error) {
 }
 
 func formatFolderName(year, month, day int) string {
-	m := strconv.Itoa(month)
-	if len(m) == 1 {
-		m = "0" + m
-	}
-
-	d := strconv.Itoa(day)
-	if len(d) == 1 {
-		d = "0" + d
-	}
-
-	return fmt.Sprintf(folderFormat, strconv.Itoa(year), m, d)
+	return fmt.Sprintf(folderFormat, strconv.Itoa(year),
+		genutils.PrefixZeros(2, strconv.Itoa(month)),
+		genutils.PrefixZeros(2, strconv.Itoa(day)))
 }
 
 func mergeMaps[T any](m1 map[string]T, m2 map[string]T) map[string]T {

@@ -51,7 +51,9 @@ func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []st
 	return files, nil
 }
 
-func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []string, includeFiles bool, fileData func(string) (T, error)) (map[string]T, error) {
+func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []string,
+	includeFiles bool, fileData func(string) (T, error)) (map[string]T, error,
+) {
 	entries, err := getDirectoryEntries(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get directory entries: %w", err)
