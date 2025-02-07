@@ -29,7 +29,7 @@ func isUsableFileType(fileTypes []string, name string, includeFiles bool) bool {
 	if !includeFiles && !result {
 		result = true
 	}
-	return !result
+	return result
 }
 
 func getDirectoryEntries(path string) ([]os.DirEntry, error) {
@@ -56,4 +56,22 @@ func mergeMaps[T any](m1 map[string]T, m2 map[string]T) map[string]T {
 		m[k] = v
 	}
 	return m
+}
+
+func InArray(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
+}
+
+func ContainsFromArray(arr []string, str string) bool {
+	for _, a := range arr {
+		if strings.Contains(str, a) {
+			return true
+		}
+	}
+	return false
 }

@@ -9,14 +9,9 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	FolderYear  = "year"
-	FolderMonth = "month"
-	FolderDay   = "day"
-)
-
-func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []string, includeFiles bool, fileData func(string) (T, error),
-) (map[string]T, error) {
+func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []string,
+	includeFiles bool, fileData func(string) (T, error)) (map[string]T, error,
+) {
 	entries, err := getDirectoryEntries(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get directory entries: %w", err)
@@ -27,7 +22,7 @@ func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []st
 		zap.Any("entries", entries))
 	files := make(map[string]T)
 	for _, e := range entries {
-		if e.IsDir() || isUsableFileType(fileTypes, e.Name(), includeFiles) {
+		if e.IsDir() || !isUsableFileType(fileTypes, e.Name(), includeFiles) {
 			logger.Debug("skipping file",
 				zap.String("name", e.Name()),
 				zap.Bool("isDir", e.IsDir()),
@@ -58,34 +53,40 @@ func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to get directory entries: %w", err)
 	}
+	logger.Debug("got directory entries", zap.String("path", path), zap.Any("entries", entries))
 
-	logger.Debug("got directory entries",
-		zap.String("path", path),
-		zap.Any("entries", entries))
+	var directoryTotal, fileTotal int
 	files := make(map[string]T)
 	for _, e := range entries {
 		if e.IsDir() {
-			logger.Debug("getting files from subfolder",
-				zap.String("name", e.Name()))
+			logger.Debug("getting files from subfolder", zap.String("name", e.Name()))
 			subFiles, err := GetFilesAllDepths(logger, path+"/"+e.Name(), fileTypes, includeFiles, fileData)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get files from subfolder: %w", err)
 			}
+
 			files = mergeMaps(files, subFiles)
+			directoryTotal++
 		} else if isUsableFileType(fileTypes, e.Name(), includeFiles) {
-			logger.Debug("getting file data",
-				zap.String("name", e.Name()))
+			logger.Debug("getting file data", zap.String("name", e.Name()))
 			file, err := fileData(path + "/" + e.Name())
 			if err != nil {
+				logger.Error("failed to get file data",
+					zap.String("name", e.Name()))
 				return nil, fmt.Errorf("failed to get file data: %w", err)
 			}
-			logger.Debug("got file data",
-				zap.String("name", e.Name()),
-				zap.Any("file", file))
-			files[e.Name()] = file //todo add to this name the timestamp time
+			logger.Debug("got file data", zap.String("name", e.Name()), zap.Any("file", file))
+
+			files[e.Name()] = file
+			fileTotal++
 		}
 	}
 
+	logger.Debug("got files from folder",
+		zap.String("path", path),
+		zap.Int("directoryTotal", directoryTotal),
+		zap.Int("fileTotal", fileTotal),
+		zap.Int("totalEntries", directoryTotal+fileTotal))
 	return files, nil
 }
 

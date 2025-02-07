@@ -3,6 +3,7 @@ package main
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/photos-sorter/file_manager"
 	"github.com/photos-sorter/image_manager"
@@ -13,29 +14,42 @@ import (
 
 var (
 	imageFileTypes               = []string{"jpg", "jpeg", "raw", "cr3", "cr2", "png"}
+	rawFileTypes                 = []string{"raw", "cr3", "cr2"}
+	editedFilesContainText       = []string{"tz", "ps", "dxo", "e"}
 	sourcePath                   = "/Users/joe.downing/Pictures/Photos/testing-folder/test-images"
 	destinationPath              = "/Users/joe.downing/Pictures/Photos/testing-folder/sorted"
 	nonImageFilesDestinationPath = "/Users/joe.downing/Pictures/Photos/testing-folder/non-image-files/"
 )
 
+//todo: add a function to return the camera model
+//todo: ignore anything that isn't a canon or panasonic camera?
+//todo: use the raw/edited function
+
 func main() {
 	logger := logging.NewLogger()
-	logger = logger.With(
+	logger.Info("Started photos sorter",
 		zap.String("sourcePath", sourcePath),
 		zap.String("destinationPath", destinationPath),
 		zap.Strings("imageFileTypes", imageFileTypes),
 		zap.Bool("includeFiles", true))
+	startTime := time.Now()
 
-	imageFiles, err := file_manager.GetFilesSingleFolder(logger, sourcePath, imageFileTypes, true, image_manager.GetPhoto)
+	//imageFiles, err := file_manager.GetFilesSingleFolder(logger, sourcePath, imageFileTypes, true, image_manager.GetPhoto)
+	//if err != nil {
+	//	logger.Fatal("failed to get image files", zap.Error(err))
+	//}
+
+	imageFiles, err := file_manager.GetFilesAllDepths(logger, sourcePath, imageFileTypes, true, image_manager.GetPhoto)
 	if err != nil {
 		logger.Fatal("failed to get image files", zap.Error(err))
 	}
 
-	logger.Debug("got image files", zap.Any("imageFiles", imageFiles))
+	logger.Info("Got image files", zap.Int("count", len(imageFiles)))
 
 	// enable for sorting into folder structure of "year/month/day/<file>"
 	usingFilesWithPath(logger, imageFiles)
 
+	logger.Info("Finished photos sorter", zap.Duration("runTime", time.Since(startTime)))
 	// enable for sorting into folder struct of "year-month-day/<file>"
 	//usingSortedFolders(logger, imageFiles)
 
@@ -77,6 +91,7 @@ func usingSortedFolders(logger *zap.Logger, imageFiles map[string]image_manager.
 }
 
 func usingFilesWithPath(logger *zap.Logger, imageFiles map[string]image_manager.ImageData) {
+	logger.Info("Sorting files using source paths", zap.String("destinationPath", destinationPath))
 	err := file_manager.CreateFolderIfNotExists(destinationPath)
 	if err != nil {
 		logger.Fatal("failed to create destination path",
@@ -102,6 +117,10 @@ func usingFilesWithPath(logger *zap.Logger, imageFiles map[string]image_manager.
 		})
 
 	for _, file := range filesWithPath {
+		logger.Debug("copying file",
+			zap.String("destination", destinationPath+"/"+file.DestPath),
+			zap.String("file", file.GetFileName()))
+
 		err := file_manager.CreatePathFoldersIfDoesntExists(destinationPath, file.DestPath)
 		if err != nil {
 			logger.Fatal("failed to create folder in destination path",
@@ -151,4 +170,23 @@ func nonRecognisedFileSorter(logger *zap.Logger) {
 				zap.Error(err))
 		}
 	}
+}
+
+func editedOrRawPath(fullFileName string) string {
+	splitName := strings.Split(fullFileName, ".")
+	if len(splitName) < 2 {
+		return ""
+	}
+
+	fileType := strings.ToLower(splitName[1])
+	if file_manager.InArray(rawFileTypes, fileType) {
+		return "raw"
+	}
+
+	fileName := strings.ToLower(splitName[0])
+	if file_manager.ContainsFromArray(editedFilesContainText, fileName) {
+		return "edited"
+	}
+
+	return "raw"
 }
