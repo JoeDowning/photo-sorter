@@ -7,6 +7,13 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/photos-sorter/sorting"
+)
+
+var (
+	entriesCheckedCount int
+	movedFileCount      int
 )
 
 func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []string,
@@ -22,11 +29,13 @@ func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []st
 		zap.Any("entries", entries))
 	files := make(map[string]T)
 	for _, e := range entries {
-		if e.IsDir() || !isUsableFileType(fileTypes, e.Name(), includeFiles) {
+		entriesCheckedCount++
+		logger.Info(fmt.Sprintf("%d entries checked", entriesCheckedCount))
+		if e.IsDir() || !sorting.IsUsableFileType(fileTypes, e.Name(), includeFiles) {
 			logger.Debug("skipping file",
 				zap.String("name", e.Name()),
 				zap.Bool("isDir", e.IsDir()),
-				zap.Bool("isUsableFileType", isUsableFileType(fileTypes, e.Name(), includeFiles)),
+				zap.Bool("isUsableFileType", sorting.IsUsableFileType(fileTypes, e.Name(), includeFiles)),
 				zap.Bool("includeFiles", includeFiles))
 			continue
 		}
@@ -58,6 +67,9 @@ func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []strin
 	var directoryTotal, fileTotal int
 	files := make(map[string]T)
 	for _, e := range entries {
+		entriesCheckedCount++
+		logger.Info(fmt.Sprintf("%d entries checked", entriesCheckedCount))
+
 		if e.IsDir() {
 			logger.Debug("getting files from subfolder", zap.String("name", e.Name()))
 			subFiles, err := GetFilesAllDepths(logger, path+"/"+e.Name(), fileTypes, includeFiles, fileData)
@@ -67,7 +79,7 @@ func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []strin
 
 			files = mergeMaps(files, subFiles)
 			directoryTotal++
-		} else if isUsableFileType(fileTypes, e.Name(), includeFiles) {
+		} else if sorting.IsUsableFileType(fileTypes, e.Name(), includeFiles) {
 			logger.Debug("getting file data", zap.String("name", e.Name()))
 			file, err := fileData(path + "/" + e.Name())
 			if err != nil {
@@ -113,8 +125,9 @@ func AddFolderPathToFile[T any](files map[string]T, addFolderPath func(T) T) map
 	return filesWithPath
 }
 
-func CreateFolderIfNotExists(path string) error {
+func CreateFolderIfNotExists(logger *zap.Logger, path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
+		logger.Debug("Creating folder", zap.String("folderPath", path))
 		err := os.Mkdir(path, 0750)
 		if err != nil {
 			return fmt.Errorf("failed to create directory: %w", err)
@@ -125,7 +138,7 @@ func CreateFolderIfNotExists(path string) error {
 
 // CreatePathFoldersIfDoesntExists creates folders for the given path if they don't exist
 // foldersPath: the path to the folder where the folders will be created
-func CreatePathFoldersIfDoesntExists(foldersPath, path string) error {
+func CreatePathFoldersIfDoesntExists(logger *zap.Logger, foldersPath, path string) error {
 	folders := strings.Split(path, "/")
 	for i, folder := range folders {
 		if i+1 == len(folders) {
@@ -133,6 +146,7 @@ func CreatePathFoldersIfDoesntExists(foldersPath, path string) error {
 		}
 		foldersPath += "/" + folder
 		if _, err := os.Stat(foldersPath); os.IsNotExist(err) {
+			logger.Debug("Creating folder", zap.String("folderPath", foldersPath))
 			err := os.Mkdir(foldersPath, 0750)
 			if err != nil {
 				return fmt.Errorf("failed to create directory: %w", err)
@@ -143,10 +157,20 @@ func CreatePathFoldersIfDoesntExists(foldersPath, path string) error {
 	return nil
 }
 
-func CopyAndRenameFile(src, dst string) error {
+func CopyAndRenameFile(logger *zap.Logger, src, dst string) error {
 	err := os.Rename(src, dst)
 	if err != nil {
 		return fmt.Errorf("failed to rename file: %w", err)
 	}
+	movedFileCount++
+	logger.Info(fmt.Sprintf("%d files moved", movedFileCount))
 	return nil
+}
+
+func ReturnFilesCount() int {
+	return movedFileCount
+}
+
+func ReturnEntriesCheckedCount() int {
+	return entriesCheckedCount
 }

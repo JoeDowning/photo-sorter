@@ -43,6 +43,10 @@ func (i ImageData) GetFilePath() string {
 	return i.filePath
 }
 
+func (i ImageData) GetCameraModel() string {
+	return strings.ToLower(i.cameraModel)
+}
+
 func GetTimestamp(i ImageData) time.Time {
 	return i.timestamp
 }

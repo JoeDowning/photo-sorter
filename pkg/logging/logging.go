@@ -30,7 +30,7 @@ func NewLogger() *zap.Logger {
 	logOutput := zapcore.AddSync(os.Stdout)
 
 	// Create a core to write logs to standard output
-	core := zapcore.NewCore(encoder, logOutput, zapcore.DebugLevel)
+	core := zapcore.NewCore(encoder, logOutput, zapcore.InfoLevel)
 
 	// Create the logger with the core
 	return zap.New(core)

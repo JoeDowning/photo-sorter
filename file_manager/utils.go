@@ -4,33 +4,11 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/photos-sorter/pkg/genutils"
 )
 
 var folderFormat = "%s-%s-%s"
-
-// isUsableFileType checks if the file type is in the list of file types, if includeFiles is true
-// it will return true if the file type is in the list, if includeFiles is false it will return true
-// if the file type is not in the list.
-func isUsableFileType(fileTypes []string, name string, includeFiles bool) bool {
-	splitName := strings.Split(name, ".")
-	if len(splitName) < 2 {
-		return false
-	}
-
-	var result bool
-	for _, fileType := range fileTypes {
-		if strings.ToLower(fileType) == strings.ToLower(splitName[1]) && includeFiles {
-			result = true
-		}
-	}
-	if !includeFiles && !result {
-		result = true
-	}
-	return result
-}
 
 func getDirectoryEntries(path string) ([]os.DirEntry, error) {
 	entries, err := os.ReadDir(path)
@@ -56,22 +34,4 @@ func mergeMaps[T any](m1 map[string]T, m2 map[string]T) map[string]T {
 		m[k] = v
 	}
 	return m
-}
-
-func InArray(arr []string, str string) bool {
-	for _, a := range arr {
-		if a == str {
-			return true
-		}
-	}
-	return false
-}
-
-func ContainsFromArray(arr []string, str string) bool {
-	for _, a := range arr {
-		if strings.Contains(str, a) {
-			return true
-		}
-	}
-	return false
 }
