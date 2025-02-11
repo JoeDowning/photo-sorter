@@ -85,7 +85,7 @@ func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []strin
 			if err != nil {
 				logger.Error("failed to get file data",
 					zap.String("name", e.Name()))
-				return nil, fmt.Errorf("failed to get file data: %w", err)
+				continue
 			}
 			logger.Debug("got file data", zap.String("name", e.Name()), zap.Any("file", file))
 

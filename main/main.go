@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/photos-sorter/image_manager"
 	"github.com/photos-sorter/pkg/logging"
 	"github.com/photos-sorter/sorting"
+	"github.com/photos-sorter/video_manager"
 )
 
 const (
@@ -22,9 +24,14 @@ const (
 	seagateDestinationPath = "/Volumes/Seagate/sorted"
 )
 
-var (
-	imageFileTypes = []string{"jpg", "jpeg", "raw", "cr3", "cr2"}
+const (
+	videoMode = "videos"
+	imageMode = "images"
 
+	mode = "videos"
+)
+
+var (
 	testConfig = config{
 		sourcePath:      testSourcePath,
 		destinationPath: testDestinationPath,
@@ -41,47 +48,66 @@ type config struct {
 }
 
 func main() {
-	cfg := seagateConfig
+	cfg := testConfig
 	logger := logging.NewLogger()
+
 	logger.Info("Started photos sorter",
 		zap.String("sourcePath", cfg.sourcePath),
 		zap.String("destinationPath", cfg.destinationPath),
-		zap.Strings("imageFileTypes", imageFileTypes),
+		zap.String("mode", mode),
 		zap.Bool("includeFiles", true))
 	startTime := time.Now()
 
-	//imageFiles, err := file_manager.GetFilesSingleFolder(logger, sourcePath, imageFileTypes, true, image_manager.GetPhoto)
-	//if err != nil {
-	//	logger.Fatal("failed to get image files", zap.Error(err))
-	//}
-
-	//entries, err := os.ReadDir(cfg.sourcePath)
-	//if err != nil {
-	//	logger.Fatal("failed to read directory", zap.Error(err))
-	//}
-	//for _, e := range entries {
-	//	fmt.Println(e.Name())
-	//}
-
-	imageFiles, err := file_manager.GetFilesAllDepths(logger, cfg.sourcePath, imageFileTypes, true, image_manager.GetPhoto)
+	var err error
+	switch mode {
+	case imageMode:
+		err = sortImages(logger, cfg)
+	case videoMode:
+		err = sortVideos(logger, cfg)
+	default:
+		logger.Fatal("invalid mode selected", zap.String("mode", mode))
+	}
 	if err != nil {
-		logger.Fatal("failed to get image files", zap.Error(err))
+		logger.Fatal("failed to sort files", zap.Error(err))
+	}
+
+	logger.Info("Finished photos sorter",
+		zap.Duration("runTime", time.Since(startTime)),
+		zap.Int("filesMoved", file_manager.ReturnFilesCount()),
+		zap.Int("entriesChecked", file_manager.ReturnEntriesCheckedCount()))
+}
+
+func sortImages(logger *zap.Logger, cfg config) error {
+	imageFiles, err := file_manager.GetFilesAllDepths(
+		logger, cfg.sourcePath, image_manager.GetImageTypes(), true, image_manager.GetPhoto)
+	if err != nil {
+		return fmt.Errorf("failed to get image files from all depths: %w", err)
 	}
 
 	logger.Info("Got image files", zap.Int("count", len(imageFiles)))
 
 	// enable for sorting into folder structure of "year/month/day/<file>"
 	usingFilesWithPath(logger, cfg, imageFiles)
+	return nil
+}
 
-	logger.Info("Finished photos sorter",
-		zap.Duration("runTime", time.Since(startTime)),
-		zap.Int("filesMoved", file_manager.ReturnFilesCount()),
-		zap.Int("entriesChecked", file_manager.ReturnEntriesCheckedCount()))
-	// enable for sorting into folder struct of "year-month-day/<file>"
-	//usingSortedFolders(logger, imageFiles)
+func sortVideos(logger *zap.Logger, cfg config) error {
+	err := video_manager.InitExifTool()
+	if err != nil {
+		return fmt.Errorf("failed to init exiftool: %w", err)
+	}
 
-	// enable for moving non-recognised files to another folder
-	//nonRecognisedFileSorter(logger)
+	videoFiles, err := file_manager.GetFilesAllDepths(
+		logger, cfg.sourcePath, video_manager.GetVideoTypes(), true, video_manager.GetVideo)
+	if err != nil {
+		return fmt.Errorf("failed to get video files from all depths: %w", err)
+	}
+
+	logger.Info("Got video files", zap.Int("count", len(videoFiles)))
+
+	// enable for sorting into folder structure of "year/month/day/<file>"
+	//usingFilesWithPath(logger, cfg, videoFiles)
+	return nil
 }
 
 func usingSortedFolders(logger *zap.Logger, cfg config, imageFiles map[string]image_manager.ImageData) {
@@ -180,7 +206,7 @@ func nonRecognisedFileSorter(logger *zap.Logger) {
 	nonRecognisedFiles, err := file_manager.GetFilesSingleFolder(
 		logger,
 		testSourcePath,
-		imageFileTypes,
+		image_manager.GetImageTypes(),
 		false,
 		func(path string) (string, error) { return path, nil },
 	)

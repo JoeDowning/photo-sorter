@@ -13,12 +13,18 @@ import (
 	"github.com/photos-sorter/pkg/genutils"
 )
 
+var imageFileTypes = []string{"jpg", "jpeg", "raw", "cr3", "cr2"}
+
 type ImageData struct {
 	fileName    string
 	filePath    string
 	cameraModel string
 	timestamp   time.Time
 	DestPath    string
+}
+
+func GetImageTypes() []string {
+	return imageFileTypes
 }
 
 func toImageData(e exif2.Exif, name, path string) ImageData {

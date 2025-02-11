@@ -1,6 +1,12 @@
 package genutils
 
-import "strings"
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"go.uber.org/zap"
+)
 
 func PrefixZeros(reqLen int, s string) string {
 	if len(s) >= reqLen {
@@ -34,4 +40,14 @@ func ContainsFromArray(arr []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func OutputAllEntriesAtDir(logger *zap.Logger, path string) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		logger.Fatal("failed to read directory", zap.Error(err))
+	}
+	for _, e := range entries {
+		fmt.Println(e.Name())
+	}
 }
