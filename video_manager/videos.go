@@ -36,6 +36,22 @@ func ClearupExifTool() {
 	et.Close()
 }
 
+func (v VideoData) GetFileName() string {
+	return v.fileName
+}
+
+func (v VideoData) GetFilePath() string {
+	return v.filePath
+}
+
+func (v VideoData) GetCameraModel() string {
+	return v.cameraModel
+}
+
+func GetTimestamp(v VideoData) time.Time {
+	return v.timestamp
+}
+
 func GetVideo(path string) (VideoData, error) {
 	var v VideoData
 	fileInfos := et.ExtractMetadata(path)

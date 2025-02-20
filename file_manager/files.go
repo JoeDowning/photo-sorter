@@ -116,7 +116,7 @@ func SortFilesByDate[T any](files map[string]T, getTimeStamp func(T) time.Time) 
 	return sortedFiles
 }
 
-func AddFolderPathToFile[T any](files map[string]T, addFolderPath func(T) T) map[string]T {
+func AddFolderPathToFile[T any](files map[string]T, addFolderPath func(*zap.Logger, T) T) map[string]T {
 	filesWithPath := make(map[string]T)
 	for name, file := range files {
 		fileWithPath := addFolderPath(file)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,7 +27,7 @@ const (
 	videoMode = "videos"
 	imageMode = "images"
 
-	mode = "videos"
+	mode = "images"
 )
 
 var (
@@ -86,8 +85,10 @@ func sortImages(logger *zap.Logger, cfg config) error {
 
 	logger.Info("Got image files", zap.Int("count", len(imageFiles)))
 
-	// enable for sorting into folder structure of "year/month/day/<file>"
-	usingFilesWithPath(logger, cfg, imageFiles)
+	// sorting into folder structure of "<type>/<year>/<month>/<day>/<file>"
+	// where type is either raw, edited or other,
+	// other will be of format "<other>/<year>/<file>"
+	usingImageFilesWithPath(logger, cfg, imageFiles)
 	return nil
 }
 
@@ -105,8 +106,9 @@ func sortVideos(logger *zap.Logger, cfg config) error {
 
 	logger.Info("Got video files", zap.Int("count", len(videoFiles)))
 
-	// enable for sorting into folder structure of "year/month/day/<file>"
-	//usingFilesWithPath(logger, cfg, videoFiles)
+	// sorting into folder structure of "<type>/<year>/<file>"
+	// where type is either wildlife or other
+	usingVideoFilesWithPath(logger, cfg, videoFiles)
 	return nil
 }
 
@@ -144,7 +146,7 @@ func usingSortedFolders(logger *zap.Logger, cfg config, imageFiles map[string]im
 	}
 }
 
-func usingFilesWithPath(logger *zap.Logger, cfg config, imageFiles map[string]image_manager.ImageData) {
+func usingImageFilesWithPath(logger *zap.Logger, cfg config, imageFiles map[string]image_manager.ImageData) {
 	logger.Info("Sorting files using source paths", zap.String("destinationPath", cfg.destinationPath))
 	err := file_manager.CreateFolderIfNotExists(logger, cfg.destinationPath)
 	if err != nil {
@@ -155,26 +157,48 @@ func usingFilesWithPath(logger *zap.Logger, cfg config, imageFiles map[string]im
 
 	filesWithPath := file_manager.AddFolderPathToFile(
 		imageFiles,
-		func(file image_manager.ImageData) image_manager.ImageData {
-			editOrRawFile := sorting.IsEditedOrRaw(logger, file)
-			timestamp := image_manager.GetTimestamp(file)
-			year := strconv.Itoa(timestamp.Year())
-			if editOrRawFile == "other" {
-				file.DestPath = editOrRawFile + "/" + year + "/" + file.GetFileName()
-			} else {
-				month := strconv.Itoa(int(timestamp.Month()))
-				if len(month) == 1 {
-					month = "0" + month
-				}
-				day := strconv.Itoa(timestamp.Day())
-				if len(day) == 1 {
-					day = "0" + day
-				}
-				file.DestPath = editOrRawFile + "/" + year + "/" + month + "/" + day + "/" + file.GetFileName()
-			}
+		sorting.AddingFolderToImagePath,
+	)
 
-			return file
-		})
+	for _, file := range filesWithPath {
+		logger.Debug("copying file",
+			zap.String("destination", cfg.destinationPath+"/"+file.DestPath),
+			zap.String("file", file.GetFileName()),
+			zap.String("cameraModel", file.GetCameraModel()))
+
+		err := file_manager.CreatePathFoldersIfDoesntExists(logger, cfg.destinationPath, file.DestPath)
+		if err != nil {
+			logger.Fatal("failed to create folder in destination path",
+				zap.String("folderName", file.GetFilePath()),
+				zap.Error(err))
+		}
+
+		err = file_manager.CopyAndRenameFile(
+			logger,
+			file.GetFilePath(),
+			cfg.destinationPath+"/"+file.DestPath)
+		if err != nil {
+			logger.Fatal("failed to copy and rename file",
+				zap.String("destination", testDestinationPath+"/"+file.DestPath),
+				zap.String("file", file.GetFileName()),
+				zap.Error(err))
+		}
+	}
+}
+
+func usingVideoFilesWithPath(logger *zap.Logger, cfg config, videoFiles map[string]video_manager.VideoData) {
+	logger.Info("Sorting files using source paths", zap.String("destinationPath", cfg.destinationPath))
+	err := file_manager.CreateFolderIfNotExists(logger, cfg.destinationPath)
+	if err != nil {
+		logger.Fatal("failed to create destination path",
+			zap.String("destinationPath", cfg.destinationPath),
+			zap.Error(err))
+	}
+
+	filesWithPath := file_manager.AddFolderPathToFile(
+		videoFiles,
+		sorting.AddingFolderToVideoPath,
+	)
 
 	for _, file := range filesWithPath {
 		logger.Debug("copying file",
