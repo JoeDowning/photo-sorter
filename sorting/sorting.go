@@ -31,7 +31,7 @@ var (
 
 	// fullPathFormat being: top folder / date sub folders / filename
 	// the date sub folders are in the format: year / month / day /
-	fullPathFormat = fmt.Sprintf("%s/%s%s")
+	fullPathFormat = "%s/%s%s"
 )
 
 // IsUsableFileType checks if the file type is in the list of file types, if includeFiles is true
@@ -39,13 +39,13 @@ var (
 // if the file type is not in the list.
 func IsUsableFileType(fileTypes []string, name string, includeFiles bool) bool {
 	splitName := strings.Split(name, ".")
-	if !(len(splitName) == 2) {
+	if len(splitName) < 2 {
 		return false
 	}
 
 	var result bool
 	for _, fileType := range fileTypes {
-		if strings.ToLower(fileType) == strings.ToLower(splitName[1]) && includeFiles {
+		if strings.ToLower(fileType) == strings.ToLower(splitName[len(splitName)-1]) && includeFiles {
 			result = true
 		}
 	}

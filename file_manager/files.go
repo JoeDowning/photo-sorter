@@ -2,6 +2,7 @@ package file_manager
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -116,10 +117,10 @@ func SortFilesByDate[T any](files map[string]T, getTimeStamp func(T) time.Time) 
 	return sortedFiles
 }
 
-func AddFolderPathToFile[T any](files map[string]T, addFolderPath func(*zap.Logger, T) T) map[string]T {
+func AddFolderPathToFile[T any](logger *zap.Logger, files map[string]T, addFolderPath func(*zap.Logger, T) T) map[string]T {
 	filesWithPath := make(map[string]T)
 	for name, file := range files {
-		fileWithPath := addFolderPath(file)
+		fileWithPath := addFolderPath(logger, file)
 		filesWithPath[name] = fileWithPath
 	}
 	return filesWithPath
@@ -157,13 +158,49 @@ func CreatePathFoldersIfDoesntExists(logger *zap.Logger, foldersPath, path strin
 	return nil
 }
 
-func CopyAndRenameFile(logger *zap.Logger, src, dst string) error {
+func MoveAndRenameFile(logger *zap.Logger, src, dst string) error {
 	err := os.Rename(src, dst)
 	if err != nil {
 		return fmt.Errorf("failed to rename file: %w", err)
 	}
 	movedFileCount++
 	logger.Info(fmt.Sprintf("%d files moved", movedFileCount))
+	return nil
+}
+
+func CopyAndRenameFile(logger *zap.Logger, src, dst string) error {
+	err := copyFile(src, dst)
+	if err != nil {
+		return fmt.Errorf("failed to copy file: %w", err)
+	}
+	movedFileCount++
+	logger.Info(fmt.Sprintf("%d files moved", movedFileCount))
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	err = dstFile.Sync()
+	if err != nil {
+		return fmt.Errorf("failed to sync destination file: %w", err)
+	}
+
 	return nil
 }
 

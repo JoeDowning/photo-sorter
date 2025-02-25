@@ -16,6 +16,7 @@ import (
 
 const (
 	testSourcePath                   = "/Users/joe.downing/Pictures/Photos/testing-folder/test-images"
+	testZipSourcePath                = "/Users/joe.downing/Pictures/Photos/testing-folder/test-zips"
 	testDestinationPath              = "/Users/joe.downing/Pictures/Photos/testing-folder/sorted"
 	testNonImageFilesDestinationPath = "/Users/joe.downing/Pictures/Photos/testing-folder/non-image-files/"
 
@@ -27,12 +28,20 @@ const (
 	videoMode = "videos"
 	imageMode = "images"
 
-	mode = "images"
+	moveFileMode = "move"
+	copyFileMode = "copy"
+
+	mode     = "images"
+	fileMode = "copy"
 )
 
 var (
 	testConfig = config{
 		sourcePath:      testSourcePath,
+		destinationPath: testDestinationPath,
+	}
+	testZipConfig = config{
+		sourcePath:      testZipSourcePath,
 		destinationPath: testDestinationPath,
 	}
 	seagateConfig = config{
@@ -46,21 +55,35 @@ type config struct {
 	destinationPath string
 }
 
+//todo look at uploading to google photos
+//todo test the moving of videos
+
 func main() {
-	cfg := testConfig
+	cfg := testZipConfig
 	logger := logging.NewLogger()
 
 	logger.Info("Started photos sorter",
 		zap.String("sourcePath", cfg.sourcePath),
 		zap.String("destinationPath", cfg.destinationPath),
 		zap.String("mode", mode),
+		zap.String("fileMode", fileMode),
 		zap.Bool("includeFiles", true))
 	startTime := time.Now()
+
+	var moveFileFunc func(*zap.Logger, string, string) error
+	switch fileMode {
+	case moveFileMode:
+		moveFileFunc = file_manager.MoveAndRenameFile
+	case copyFileMode:
+		moveFileFunc = file_manager.CopyAndRenameFile
+	default:
+		logger.Fatal("invalid file mode selected", zap.String("fileMode", fileMode))
+	}
 
 	var err error
 	switch mode {
 	case imageMode:
-		err = sortImages(logger, cfg)
+		err = sortImages(logger, cfg, moveFileFunc)
 	case videoMode:
 		err = sortVideos(logger, cfg)
 	default:
@@ -76,7 +99,7 @@ func main() {
 		zap.Int("entriesChecked", file_manager.ReturnEntriesCheckedCount()))
 }
 
-func sortImages(logger *zap.Logger, cfg config) error {
+func sortImages(logger *zap.Logger, cfg config, moveFile func(*zap.Logger, string, string) error) error {
 	imageFiles, err := file_manager.GetFilesAllDepths(
 		logger, cfg.sourcePath, image_manager.GetImageTypes(), true, image_manager.GetPhoto)
 	if err != nil {
@@ -88,7 +111,7 @@ func sortImages(logger *zap.Logger, cfg config) error {
 	// sorting into folder structure of "<type>/<year>/<month>/<day>/<file>"
 	// where type is either raw, edited or other,
 	// other will be of format "<other>/<year>/<file>"
-	usingImageFilesWithPath(logger, cfg, imageFiles)
+	usingImageFilesWithPath(logger, cfg, imageFiles, moveFile)
 	return nil
 }
 
@@ -132,7 +155,7 @@ func usingSortedFolders(logger *zap.Logger, cfg config, imageFiles map[string]im
 		}
 
 		for _, file := range files {
-			err := file_manager.CopyAndRenameFile(
+			err := file_manager.MoveAndRenameFile(
 				logger,
 				file.GetFilePath(),
 				cfg.destinationPath+"/"+folderName+"/"+file.GetFileName())
@@ -146,7 +169,8 @@ func usingSortedFolders(logger *zap.Logger, cfg config, imageFiles map[string]im
 	}
 }
 
-func usingImageFilesWithPath(logger *zap.Logger, cfg config, imageFiles map[string]image_manager.ImageData) {
+func usingImageFilesWithPath(logger *zap.Logger, cfg config, imageFiles map[string]image_manager.ImageData,
+	moveFile func(*zap.Logger, string, string) error) {
 	logger.Info("Sorting files using source paths", zap.String("destinationPath", cfg.destinationPath))
 	err := file_manager.CreateFolderIfNotExists(logger, cfg.destinationPath)
 	if err != nil {
@@ -156,6 +180,7 @@ func usingImageFilesWithPath(logger *zap.Logger, cfg config, imageFiles map[stri
 	}
 
 	filesWithPath := file_manager.AddFolderPathToFile(
+		logger,
 		imageFiles,
 		sorting.AddingFolderToImagePath,
 	)
@@ -173,7 +198,7 @@ func usingImageFilesWithPath(logger *zap.Logger, cfg config, imageFiles map[stri
 				zap.Error(err))
 		}
 
-		err = file_manager.CopyAndRenameFile(
+		err = moveFile(
 			logger,
 			file.GetFilePath(),
 			cfg.destinationPath+"/"+file.DestPath)
@@ -196,6 +221,7 @@ func usingVideoFilesWithPath(logger *zap.Logger, cfg config, videoFiles map[stri
 	}
 
 	filesWithPath := file_manager.AddFolderPathToFile(
+		logger,
 		videoFiles,
 		sorting.AddingFolderToVideoPath,
 	)
@@ -213,7 +239,7 @@ func usingVideoFilesWithPath(logger *zap.Logger, cfg config, videoFiles map[stri
 				zap.Error(err))
 		}
 
-		err = file_manager.CopyAndRenameFile(
+		err = file_manager.MoveAndRenameFile(
 			logger,
 			file.GetFilePath(),
 			cfg.destinationPath+"/"+file.DestPath)
@@ -246,7 +272,7 @@ func nonRecognisedFileSorter(logger *zap.Logger) {
 		if strings.Contains(filePath, "DS_Store") {
 			continue
 		}
-		err := file_manager.CopyAndRenameFile(
+		err := file_manager.MoveAndRenameFile(
 			logger,
 			filePath,
 			testDestinationPath+testNonImageFilesDestinationPath+filePath)
