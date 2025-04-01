@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-
-	"github.com/photos-sorter/sorting"
 )
 
 var (
@@ -32,11 +30,11 @@ func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []st
 	for _, e := range entries {
 		entriesCheckedCount++
 		logger.Info(fmt.Sprintf("%d entries checked", entriesCheckedCount))
-		if e.IsDir() || !sorting.IsUsableFileType(fileTypes, e.Name(), includeFiles) {
+		if e.IsDir() || !isUsableFileType(fileTypes, e.Name(), includeFiles) {
 			logger.Debug("skipping file",
 				zap.String("name", e.Name()),
 				zap.Bool("isDir", e.IsDir()),
-				zap.Bool("isUsableFileType", sorting.IsUsableFileType(fileTypes, e.Name(), includeFiles)),
+				zap.Bool("isUsableFileType", isUsableFileType(fileTypes, e.Name(), includeFiles)),
 				zap.Bool("includeFiles", includeFiles))
 			continue
 		}
@@ -80,7 +78,7 @@ func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []strin
 
 			files = mergeMaps(files, subFiles)
 			directoryTotal++
-		} else if sorting.IsUsableFileType(fileTypes, e.Name(), includeFiles) {
+		} else if isUsableFileType(fileTypes, e.Name(), includeFiles) {
 			logger.Debug("getting file data", zap.String("name", e.Name()))
 			file, err := fileData(path + "/" + e.Name())
 			if err != nil {

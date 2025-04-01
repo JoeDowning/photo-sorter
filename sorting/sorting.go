@@ -34,28 +34,7 @@ var (
 	fullPathFormat = "%s/%s%s"
 )
 
-// IsUsableFileType checks if the file type is in the list of file types, if includeFiles is true
-// it will return true if the file type is in the list, if includeFiles is false it will return true
-// if the file type is not in the list.
-func IsUsableFileType(fileTypes []string, name string, includeFiles bool) bool {
-	splitName := strings.Split(name, ".")
-	if len(splitName) < 2 {
-		return false
-	}
-
-	var result bool
-	for _, fileType := range fileTypes {
-		if strings.ToLower(fileType) == strings.ToLower(splitName[len(splitName)-1]) && includeFiles {
-			result = true
-		}
-	}
-	if !includeFiles && !result {
-		result = true
-	}
-	return result
-}
-
-func AddingFolderToImagePath(logger *zap.Logger, file image_manager.ImageData) image_manager.ImageData {
+func addingFolderToImagePath(logger *zap.Logger, file image_manager.ImageData) image_manager.ImageData {
 	editOrRawFile := isImageEditedOrRaw(logger, file)
 	timestamp := image_manager.GetTimestamp(file)
 	year := strconv.Itoa(timestamp.Year())
@@ -76,7 +55,7 @@ func AddingFolderToImagePath(logger *zap.Logger, file image_manager.ImageData) i
 	return file
 }
 
-func AddingFolderToVideoPath(logger *zap.Logger, file video_manager.VideoData) video_manager.VideoData {
+func addingFolderToVideoPath(logger *zap.Logger, file video_manager.VideoData) video_manager.VideoData {
 	timestamp := video_manager.GetTimestamp(file)
 	year := strconv.Itoa(timestamp.Year())
 

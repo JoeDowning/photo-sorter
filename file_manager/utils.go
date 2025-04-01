@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/photos-sorter/pkg/genutils"
 )
@@ -34,4 +35,25 @@ func mergeMaps[T any](m1 map[string]T, m2 map[string]T) map[string]T {
 		m[k] = v
 	}
 	return m
+}
+
+// isUsableFileType checks if the file type is in the list of file types, if includeFiles is true
+// it will return true if the file type is in the list, if includeFiles is false it will return true
+// if the file type is not in the list.
+func isUsableFileType(fileTypes []string, name string, includeFiles bool) bool {
+	splitName := strings.Split(name, ".")
+	if len(splitName) < 2 {
+		return false
+	}
+
+	var result bool
+	for _, fileType := range fileTypes {
+		if strings.ToLower(fileType) == strings.ToLower(splitName[len(splitName)-1]) && includeFiles {
+			result = true
+		}
+	}
+	if !includeFiles && !result {
+		result = true
+	}
+	return result
 }
