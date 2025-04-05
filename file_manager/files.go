@@ -55,7 +55,7 @@ func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []st
 }
 
 func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []string,
-	includeFiles bool, fileData func(string) (T, error)) (map[string]T, error,
+	includeFiles bool, fileData func(*zap.Logger, string) (T, error)) (map[string]T, error,
 ) {
 	entries, err := getDirectoryEntries(path)
 	if err != nil {
@@ -80,7 +80,7 @@ func GetFilesAllDepths[T any](logger *zap.Logger, path string, fileTypes []strin
 			directoryTotal++
 		} else if isUsableFileType(fileTypes, e.Name(), includeFiles) {
 			logger.Debug("getting file data", zap.String("name", e.Name()))
-			file, err := fileData(path + "/" + e.Name())
+			file, err := fileData(logger, path+"/"+e.Name())
 			if err != nil {
 				logger.Error("failed to get file data",
 					zap.String("name", e.Name()))

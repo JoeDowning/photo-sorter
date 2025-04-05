@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/barasher/go-exiftool"
+	"go.uber.org/zap"
 )
 
 var (
@@ -52,7 +53,7 @@ func GetTimestamp(v VideoData) time.Time {
 	return v.timestamp
 }
 
-func GetVideo(path string) (VideoData, error) {
+func GetVideo(logger *zap.Logger, path string) (VideoData, error) {
 	var v VideoData
 	fileInfos := et.ExtractMetadata(path)
 
@@ -68,9 +69,15 @@ func GetVideo(path string) (VideoData, error) {
 			continue
 		}
 
-		for k, v := range fileInfo.Fields {
-			fmt.Printf("[%v] %v\n", k, v)
+		exifData, err := extractVideoDetails(logger, fileInfo.Fields)
+		if err != nil {
+			logger.Error("failed to extract video details",
+				zap.Error(err),
+				zap.String("file", fileInfo.File),
+				zap.Any("fields", fileInfo.Fields))
+			return v, fmt.Errorf("failed to extract video details: %w", err)
 		}
+		v = exifDataToVideoData(logger, exifData, path)
 	}
 
 	return v, nil

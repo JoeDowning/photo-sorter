@@ -112,7 +112,9 @@ func isVideoWildlifeOrNot(logger *zap.Logger, v video_manager.VideoData) string 
 
 	splitName := strings.Split(name, ".")
 	if len(splitName) < 2 {
-		return ""
+		logger.Error("video name does not have a file type",
+			zap.String("fullFileName", name))
+		return "" //todo here is an issue
 	}
 
 	fileName := strings.ToLower(splitName[0])
@@ -122,7 +124,7 @@ func isVideoWildlifeOrNot(logger *zap.Logger, v video_manager.VideoData) string 
 
 	//todo: add a check if the name has something useful in it?
 	switch {
-	case genutils.StringsContainInArray(videoCameraModelKeywords, camera):
+	case genutils.StringsContainInArray(videoCameraModelKeywords, strings.ToLower(camera)):
 		logger.Debug("video has a wildlife camera model",
 			zap.String("cameraModel", camera))
 		return "wildlife"

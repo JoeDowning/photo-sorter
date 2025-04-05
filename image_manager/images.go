@@ -9,6 +9,7 @@ import (
 
 	"github.com/evanoberholster/imagemeta"
 	"github.com/evanoberholster/imagemeta/exif2"
+	"go.uber.org/zap"
 
 	"github.com/photos-sorter/pkg/genutils"
 )
@@ -57,7 +58,7 @@ func GetTimestamp(i ImageData) time.Time {
 	return i.timestamp
 }
 
-func GetPhoto(path string) (ImageData, error) {
+func GetPhoto(_ *zap.Logger, path string) (ImageData, error) {
 	var i ImageData
 	f, err := os.Open(path)
 	if err != nil {
