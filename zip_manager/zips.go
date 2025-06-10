@@ -5,30 +5,37 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"go.uber.org/zap"
+
+	"github.com/photos-sorter/file_manager"
 )
+
+type ZipData struct {
+	Name    string
+	Path    string
+	Entries int
+}
+
+func GetZipFiles(logger *zap.Logger, path string) (map[string]ZipData, error) {
+	files, err := file_manager.GetFilesAllDepths[ZipData](logger, path, []string{".zip"}, true,
+		func(logger *zap.Logger, filePath string) (ZipData, error) {
+			return ZipData{
+				Name: filepath.Base(filePath),
+				Path: filePath,
+			}, nil
+		})
+	if err != nil {
+		return map[string]ZipData{}, fmt.Errorf("failed to get zip files: %w", err)
+	}
+	return files, nil
+}
 
 func UnzipFileFromZip(logger *zap.Logger, src, dst string) ([]string, error) {
 	logger.Debug("getting file names from zip",
 		zap.String("sourcePath", src))
 
-	archive, err := zip.OpenReader(src)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open zip file: %w", err)
-	}
-	defer archive.Close()
-
-	for _, file := range archive.File {
-		logger.Debug("found entry in zip",
-			zap.String("fileName", file.Name))
-
-		if file.FileInfo().IsDir() {
-			logger.Debug("skipping directory",
-				zap.String("fileName", file.Name))
-			continue
-		}
-	}
 	return nil, nil
 }
 

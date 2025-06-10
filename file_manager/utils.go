@@ -48,8 +48,10 @@ func isUsableFileType(fileTypes []string, name string, includeFiles bool) bool {
 
 	var result bool
 	for _, fileType := range fileTypes {
+		fmt.Printf("Checking file type: %s against %s\n", fileType, splitName[len(splitName)-1])
 		if strings.ToLower(fileType) == strings.ToLower(splitName[len(splitName)-1]) && includeFiles {
 			result = true
+			fmt.Printf("File type %s is usable for file %s\n", fileType, name)
 		}
 	}
 	if !includeFiles && !result {

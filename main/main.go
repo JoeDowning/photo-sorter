@@ -11,6 +11,7 @@ import (
 	"github.com/photos-sorter/pkg/config"
 	"github.com/photos-sorter/pkg/logging"
 	"github.com/photos-sorter/sorting"
+	"github.com/photos-sorter/zip_manager"
 )
 
 const (
@@ -43,6 +44,18 @@ func main() {
 		zap.Bool("includeFiles", true))
 
 	startTime := time.Now()
+
+	if cfg.IncludeZips {
+		fileList, err := zip_manager.UnzipFileFromZip(logger, cfg.SourcePath, cfg.DestinationPath)
+		if err != nil {
+			logger.Fatal("failed to unzip files", zap.Error(err))
+		}
+		logger.Info("Unzipped files",
+			zap.Int("count", len(fileList)),
+			zap.String("sourcePath", cfg.SourcePath),
+			zap.String("destinationPath", cfg.DestinationPath))
+		return
+	}
 
 	var moveFileFunc func(*zap.Logger, string, string) error
 	switch cfg.FileMode {

@@ -26,8 +26,10 @@ func SortImages(logger *zap.Logger, cfg config.Config, moveFile func(*zap.Logger
 	return nil
 }
 
-func usingImageFilesWithPath(logger *zap.Logger, cfg config.Config, imageFiles map[string]image_manager.ImageData,
-	moveFile func(*zap.Logger, string, string) error) {
+func usingImageFilesWithPath(logger *zap.Logger, cfg config.Config,
+	imageFiles map[string]image_manager.ImageData,
+	moveFile func(*zap.Logger, string, string) error,
+) {
 	logger.Info("Sorting files using source paths", zap.String("destinationPath", cfg.DestinationPath))
 	err := file_manager.CreateFolderIfNotExists(logger, cfg.DestinationPath)
 	if err != nil {
@@ -42,8 +44,9 @@ func usingImageFilesWithPath(logger *zap.Logger, cfg config.Config, imageFiles m
 		addingFolderToImagePath,
 	)
 
+	file_manager.FilesToMoveCount = len(filesWithPath)
 	for _, file := range filesWithPath {
-		logger.Debug("copying file",
+		logger.Debug("copying/moving file",
 			zap.String("destination", cfg.DestinationPath+"/"+file.DestPath),
 			zap.String("file", file.GetFileName()),
 			zap.String("cameraModel", file.GetCameraModel()))

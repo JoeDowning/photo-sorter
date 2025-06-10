@@ -63,7 +63,7 @@ func usingVideoFilesWithPath(logger *zap.Logger, cfg config.Config, videoFiles m
 			file.GetFilePath(),
 			cfg.DestinationPath+"/"+file.DestPath)
 		if err != nil {
-			logger.Fatal("failed to copy and rename file",
+			logger.Error("failed to copy and rename file",
 				zap.String("destination", cfg.DestinationPath+"/"+file.DestPath),
 				zap.String("file", file.GetFileName()),
 				zap.Error(err))

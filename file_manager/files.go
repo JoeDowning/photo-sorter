@@ -13,6 +13,7 @@ import (
 var (
 	entriesCheckedCount int
 	movedFileCount      int
+	FilesToMoveCount    int
 )
 
 func GetFilesSingleFolder[T any](logger *zap.Logger, path string, fileTypes []string,
@@ -157,26 +158,40 @@ func CreatePathFoldersIfDoesntExists(logger *zap.Logger, foldersPath, path strin
 }
 
 func MoveAndRenameFile(logger *zap.Logger, src, dst string) error {
+	if _, err := os.Stat(dst); err == nil {
+		logger.Debug("Destination file already exists", zap.String("destination", dst))
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check destination file: %w", err)
+	}
+
 	err := os.Rename(src, dst)
 	if err != nil {
 		return fmt.Errorf("failed to rename file: %w", err)
 	}
 	movedFileCount++
-	logger.Info(fmt.Sprintf("%d files moved", movedFileCount))
+	logger.Info(fmt.Sprintf("[ %d / %d ] files moved", movedFileCount, FilesToMoveCount))
 	return nil
 }
 
 func CopyAndRenameFile(logger *zap.Logger, src, dst string) error {
-	err := copyFile(src, dst)
+	err := copyFile(logger, src, dst)
 	if err != nil {
 		return fmt.Errorf("failed to copy file: %w", err)
 	}
 	movedFileCount++
-	logger.Info(fmt.Sprintf("%d files moved", movedFileCount))
+	logger.Info(fmt.Sprintf("[ %d / %d ] files copied", movedFileCount, FilesToMoveCount))
 	return nil
 }
 
-func copyFile(src, dst string) error {
+func copyFile(logger *zap.Logger, src, dst string) error {
+	if _, err := os.Stat(dst); err == nil {
+		logger.Debug("Destination file already exists", zap.String("destination", dst))
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check destination file: %w", err)
+	}
+
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
